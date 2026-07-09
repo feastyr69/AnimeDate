@@ -18,71 +18,37 @@ type WaifuSpriteProps = {
   isTalking?: boolean;
 };
 
-// ─── Asset base path ─────────────────────────────────────────────────────────
+// ─── Asset Config ────────────────────────────────────────────────────────────
 const BASE = '/assets_model1';
 
-// ─── Native canvas size ──────────────────────────────────────────────────────
-// Most layers are 1011×1145, but Base Body is 1011×1186 (tallest).
-// We use the tallest dimension so nothing gets squished.
+// All PNGs share the same native width of 1011px, with top-left origin.
+// By setting a fixed display width and `height: auto`, they will perfectly
+// align without needing hardcoded heights for each outfit.
 const NATIVE_W = 1011;
-const NATIVE_H = 1186; // matches Base Body — tallest layer
+const NATIVE_H = 1186; // Tallest layer (Base Body) for container bounding
 
-// Display size — proportionally scaled (increased size)
 const DISPLAY_WIDTH = 500;
 const SCALE = DISPLAY_WIDTH / NATIVE_W;
-// Crop a bit from the bottom as requested (e.g., 15px at display scale)
-const DISPLAY_HEIGHT = Math.round(NATIVE_H * SCALE) - 15;
+// Crop more from the bottom (e.g., 60px at display scale)
+const DISPLAY_HEIGHT = Math.round(NATIVE_H * SCALE) - 20;
 
-// ─── Layer catalogues ────────────────────────────────────────────────────────
 const OUTFITS = [
-  'Hoodie 1',
-  'PE uniform',
-  'Pajama',
-  'Sswimsuit',
-  'Summer Dress',
-  'Towel',
-  'Winter outfit',
-  'seifuku 1',
-  'seifuku 2',
+  'Hoodie 1', 'PE uniform', 'Pajama', 'Sswimsuit',
+  'Summer Dress', 'Towel', 'Winter outfit', 'seifuku 1', 'seifuku 2',
 ];
 
-// Hair now has front + back pairs
 const HAIR_COLORS = ['blonde', 'brown', 'dark', 'pink', 'silver'];
 
-// ─── Helper: build a layer style for a specific native height ────────────────
-// Each PNG has width=1011 but heights vary slightly (1145, 1147, 1148, 1161, 1186).
-// We scale each to its own native height so it isn't stretched, and pin to top-left.
-function makeLayerStyle(nativeH: number): React.CSSProperties {
-  return {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: `${DISPLAY_WIDTH}px`,
-    height: `${Math.round(nativeH * SCALE)}px`,
-    maxWidth: 'none',
-    display: 'block',
-    pointerEvents: 'none',
-  };
-}
-
-// Pre-compute the common layer styles
-const STYLE_1145 = makeLayerStyle(1145);
-const STYLE_1147 = makeLayerStyle(1147);
-const STYLE_1148 = makeLayerStyle(1148);
-const STYLE_1161 = makeLayerStyle(1161);
-const STYLE_1186 = makeLayerStyle(1186);
-
-// Map outfit names to their native heights (most are 1145)
-const OUTFIT_HEIGHTS: Record<string, React.CSSProperties> = {
-  'Hoodie 1': STYLE_1145,
-  'PE uniform': STYLE_1145,
-  'Pajama': STYLE_1145,
-  'Sswimsuit': STYLE_1147,
-  'Summer Dress': STYLE_1147,
-  'Towel': STYLE_1147,
-  'Winter outfit': STYLE_1161,
-  'seifuku 1': STYLE_1145,
-  'seifuku 2': STYLE_1145,
+// Shared style for all layers to guarantee alignment
+const layerStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  width: `${DISPLAY_WIDTH}px`,
+  height: 'auto',
+  maxWidth: 'none',
+  display: 'block',
+  pointerEvents: 'none',
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -93,16 +59,10 @@ const WaifuSprite: React.FC<WaifuSpriteProps> = ({
   const [mouthOpen, setMouthOpen] = useState(false);
 
   // Pick random outfit + hair once on mount
-  const outfit = useMemo(
-    () => OUTFITS[Math.floor(Math.random() * OUTFITS.length)],
-    [],
-  );
-  const hairColor = useMemo(
-    () => HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)],
-    [],
-  );
+  const outfit = useMemo(() => OUTFITS[Math.floor(Math.random() * OUTFITS.length)], []);
+  const hairColor = useMemo(() => HAIR_COLORS[Math.floor(Math.random() * HAIR_COLORS.length)], []);
 
-  // ── Talking animation ───────────────────────────────────────────────────
+  // Talking animation loop
   useEffect(() => {
     if (!isTalking) {
       setMouthOpen(false);
@@ -112,35 +72,34 @@ const WaifuSprite: React.FC<WaifuSpriteProps> = ({
     return () => clearInterval(id);
   }, [isTalking]);
 
-  // ── Image sources ───────────────────────────────────────────────────────
+  // ── Emotion Mapping & Expression ──────────────────────────────────────────
+  // Map missing or specific emotions to the actual assets
+  const EMOTION_MAP: Record<string, string> = {
+    'Delighted': 'Smile',
+    'Laugh': 'Smile',
+    'Smile 2': 'Smile',
+    'normal': 'talk' // 'talk' maps to talk-mouth-open/close
+  };
+  const mappedEmotion = EMOTION_MAP[emotion as string] || emotion;
+
+  // If the emotion is animated ('Smile' or 'talk'), use the open/close set.
+  // Otherwise, use the static expression image.
+  let expressionSrc = `${BASE}/${mappedEmotion}.png`;
+  if (mappedEmotion === 'Smile' || mappedEmotion === 'talk') {
+    const state = (isTalking && mouthOpen) ? 'open' : 'close';
+    expressionSrc = `${BASE}/${mappedEmotion}-mouth-${state}.png`;
+  }
+
+  // ── Base Images ───────────────────────────────────────────────────────────
   const bodySrc = `${BASE}/Base Body.png`;
   const hairBackSrc = `${BASE}/${hairColor}-back.png`;
   const hairFrontSrc = `${BASE}/${hairColor}-front.png`;
   const outfitSrc = `${BASE}/${outfit}.png`;
   const blushSrc = `${BASE}/blush-less.png`;
 
-  // Map emotions that don't exist in the new folder to something that does
-  let mappedEmotion = emotion;
-  if (['Delighted', 'Laugh', 'Smile 2'].includes(emotion as string)) {
-    mappedEmotion = 'Smile';
-  }
-
-  // Determine the single expression layer (eyes + mouth are combined in these files)
-  let expressionSrc = `${BASE}/${mappedEmotion}.png`; 
-  
-  // If the emotion has an animated open/close set, use it. Otherwise it stays static.
-  if (mappedEmotion === 'Smile') {
-    expressionSrc = `${BASE}/Smile-mouth-${(isTalking && mouthOpen) ? 'open' : 'close'}.png`;
-  } else if (mappedEmotion === 'normal') {
-    expressionSrc = `${BASE}/talk-mouth-${(isTalking && mouthOpen) ? 'open' : 'close'}.png`;
-  }
-
-  // Resolve the correct style for the current outfit
-  const outfitStyle = OUTFIT_HEIGHTS[outfit] ?? STYLE_1145;
-
   return (
     <div className="flex flex-col items-center justify-center w-full">
-      {/* Sprite canvas — fixed size, overflow hidden to crop any taller layers */}
+      {/* Sprite canvas — sized to tallest layer, crops overflow */}
       <div
         style={{
           position: 'relative',
@@ -150,39 +109,12 @@ const WaifuSprite: React.FC<WaifuSpriteProps> = ({
           overflow: 'hidden',
         }}
       >
-        {/*
-          Layer stacking order (bottom → top):
-          z-0   Hair back
-          z-5   Body
-          z-10  Outfit
-          z-20  Hair front
-          z-25  Blush
-          z-30  Expression (Face + Mouth combined)
-        */}
-
-        {/* z-0  · Hair back (behind the body) */}
-        <img src={hairBackSrc} alt="hair back" draggable={false}
-          style={{ ...STYLE_1148, zIndex: 0 }} />
-
-        {/* z-5  · Body */}
-        <img src={bodySrc} alt="body" draggable={false}
-          style={{ ...STYLE_1186, zIndex: 5 }} />
-
-        {/* z-10 · Outfit */}
-        <img src={outfitSrc} alt="outfit" draggable={false}
-          style={{ ...outfitStyle, zIndex: 10 }} />
-
-        {/* z-20 · Hair front */}
-        <img src={hairFrontSrc} alt="hair front" draggable={false}
-          style={{ ...STYLE_1145, zIndex: 20 }} />
-
-        {/* z-25 · Blush */}
-        <img src={blushSrc} alt="blush" draggable={false}
-          style={{ ...STYLE_1145, zIndex: 25 }} />
-
-        {/* z-30 · Expression (Face + Mouth) */}
-        <img src={expressionSrc} alt={`${emotion} expression`} draggable={false}
-          style={{ ...STYLE_1145, zIndex: 30 }} />
+        <img src={hairBackSrc} alt="hair back" draggable={false} style={{ ...layerStyle, zIndex: 0 }} />
+        <img src={bodySrc} alt="body" draggable={false} style={{ ...layerStyle, zIndex: 5 }} />
+        <img src={outfitSrc} alt="outfit" draggable={false} style={{ ...layerStyle, zIndex: 10 }} />
+        <img src={hairFrontSrc} alt="hair front" draggable={false} style={{ ...layerStyle, zIndex: 20 }} />
+        <img src={blushSrc} alt="blush" draggable={false} style={{ ...layerStyle, zIndex: 25 }} />
+        <img src={expressionSrc} alt="expression" draggable={false} style={{ ...layerStyle, zIndex: 30 }} />
       </div>
 
       {/* Emotion label pill */}
