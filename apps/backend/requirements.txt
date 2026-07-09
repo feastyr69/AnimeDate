@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+langchain
+langchain-groq
+groq
+sqlalchemy
+psycopg2-binary
+pgvector
+pydantic
+pydantic-settings

@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./apps/backend
+    container_name: waifu_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./apps/backend:/app
+    env_file:
+      - .env
+
+  frontend:
+    build:
+      context: ./apps/frontend
+    container_name: waifu_frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
