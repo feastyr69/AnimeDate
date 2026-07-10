@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import WaifuSprite from './components/WaifuSprite';
+import { motion, AnimatePresence } from 'framer-motion';
 import { determineEmotion, getWaifuResponse } from './utils/chat';
 
 type Message = {
@@ -70,16 +71,23 @@ function App() {
       {/* Main Area: Waifu Sprite & Input Box */}
       <div className="flex-1 flex flex-col items-center justify-end relative z-10">
         
-        {/* Floating Comic Bubble for Waifu Message */}
-        {latestWaifuMessage && (
-          <div className="absolute top-16 md:top-24 left-1/2 transform -translate-x-1/2 md:translate-x-12 bg-white border-2 border-pink-300 p-4 rounded-3xl shadow-xl max-w-xs z-40 animate-[bounce_2s_infinite]">
-             <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 border-[12px] border-transparent border-t-white z-10"></div>
-             <div className="absolute -bottom-[20px] left-1/2 transform -translate-x-1/2 border-[14px] border-transparent border-t-pink-300 -z-10"></div>
-             <p className="text-gray-800 font-medium text-lg text-center leading-snug">
-               {latestWaifuMessage.text}
-             </p>
-          </div>
-        )}
+        {/* Reply Text above Waifu's Head */}
+        <div className="absolute top-8 md:top-12 left-0 w-full flex justify-center z-40 px-4">
+          <AnimatePresence mode="wait">
+            {latestWaifuMessage && (
+              <motion.p
+                key={latestWaifuMessage.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="text-pink-600 font-bold text-xl md:text-2xl text-center leading-snug drop-shadow-[0_0_15px_rgba(255,255,255,1)] max-w-md"
+              >
+                {latestWaifuMessage.text}
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </div>
 
         {/* Waifu Sprite */}
         <div className="flex flex-col items-center justify-end w-full">
