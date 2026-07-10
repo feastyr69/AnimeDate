@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import WaifuSprite from './components/WaifuSprite';
 import { motion, AnimatePresence } from 'framer-motion';
-import { determineEmotion, getWaifuResponse } from './utils/chat';
 
 type Message = {
   id: string;
@@ -27,35 +26,48 @@ function App() {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isTalking) return;
 
+    const userText = input.trim();
     const userMessage: Message = {
       id: Date.now().toString(),
       sender: 'user',
-      text: input.trim()
+      text: userText
     };
     
     setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setIsTalking(true);
 
-    // Simulate thinking and auto-change emotion based on input
-    setTimeout(() => {
-      const nextEmotion = determineEmotion(userMessage.text);
-      setEmotion(nextEmotion);
-      setIsTalking(true);
+    try {
+      const res = await fetch('http://localhost:8000/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userText })
+      });
+      const data = await res.json();
+      
+      setEmotion(data.emotion);
       
       const waifuResponse: Message = {
         id: (Date.now() + 1).toString(),
         sender: 'waifu',
-        text: getWaifuResponse(nextEmotion)
+        text: data.reply
       };
       setMessages(prev => [...prev, waifuResponse]);
-
-      // Stop talking after a short delay
+    } catch (error) {
+      console.error("Error communicating with AI:", error);
+      // Fallback if AI fails
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        sender: 'waifu',
+        text: 'Sorry, I got disconnected! Try again~'
+      }]);
+    } finally {
       setTimeout(() => setIsTalking(false), 2000);
-    }, 800);
+    }
   };
 
   const latestWaifuMessage = [...messages].reverse().find(m => m.sender === 'waifu');

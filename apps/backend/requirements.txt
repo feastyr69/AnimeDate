@@ -8,3 +8,6 @@ psycopg2-binary
 pgvector
 pydantic
 pydantic-settings
+langchain-huggingface
+langchain-community
+langchain-postgres
