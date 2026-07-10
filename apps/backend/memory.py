@@ -26,7 +26,9 @@ vector_store = PGVector(
 )
 
 def save_memory(user_msg: str, waifu_msg: str):
-    doc = Document(page_content=f"User: {user_msg}\nWaifu: {waifu_msg}")
+    # Sanitize user input to prevent XML injection in our sandbox later
+    sanitized_user_msg = user_msg.replace("<", "&lt;").replace(">", "&gt;")
+    doc = Document(page_content=f"User: {sanitized_user_msg}\nWaifu: {waifu_msg}")
     vector_store.add_documents([doc])
 
 def retrieve_memory(query: str, k: int = 3) -> str:

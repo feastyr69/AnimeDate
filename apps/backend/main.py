@@ -20,7 +20,15 @@ class ChatRequest(BaseModel):
 def read_root():
     return {"message": "Welcome to the AI Anime Dating Simulator Engine"}
 
+from guard import validate_input
+
 @app.post("/api/chat")
 def chat_endpoint(request: ChatRequest):
+    # if not validate_input(request.message):
+    #     return {
+    #         "reply": "Are you dumb or something? I have no idea what you're talking about, stop speaking nonsense!",
+    #         "emotion": "Annoyed"
+    #     }
+        
     response = get_chat_response(request.message)
     return response

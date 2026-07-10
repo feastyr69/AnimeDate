@@ -12,6 +12,7 @@ type Message = {
 function App() {
   const [emotion, setEmotion] = useState('normal');
   const [isTalking, setIsTalking] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', sender: 'waifu', text: 'H-hello there! I am ready to chat~' }
@@ -29,7 +30,7 @@ function App() {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isTalking) return;
+    if (!input.trim() || isTalking || isThinking) return;
 
     const userText = input.trim();
     const userMessage: Message = {
@@ -40,7 +41,7 @@ function App() {
     
     setMessages(prev => [...prev, userMessage]);
     setInput('');
-    setIsTalking(true);
+    setIsThinking(true);
 
     try {
       const res = await fetch('http://localhost:8000/api/chat', {
@@ -58,6 +59,7 @@ function App() {
         text: data.reply
       };
       setMessages(prev => [...prev, waifuResponse]);
+      setIsTalking(true); // Start talking when text appears
     } catch (error) {
       console.error("Error communicating with AI:", error);
       // Fallback if AI fails
@@ -66,8 +68,9 @@ function App() {
         sender: 'waifu',
         text: 'Sorry, I got disconnected! Try again~'
       }]);
+      setIsTalking(true);
     } finally {
-      setTimeout(() => setIsTalking(false), 2000);
+      setIsThinking(false); // Done thinking
     }
   };
 
@@ -85,17 +88,33 @@ function App() {
       <div className="flex-1 flex flex-col items-center justify-end relative z-10">
         
         {/* Reply Text above Waifu's Head */}
-        <div className="absolute top-2 md:top-4 left-0 w-full flex justify-center z-40 px-4">
+        <div className="absolute top-2 md:top-4 left-0 w-full flex justify-center z-40 px-4 h-16">
           <AnimatePresence mode="wait">
-            {latestWaifuMessage && (
-              <AnimatedText key={latestWaifuMessage.id} text={latestWaifuMessage.text} />
-            )}
+            {isThinking ? (
+              <motion.div
+                key="thinking"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="flex gap-2 items-center justify-center mt-6"
+              >
+                <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} className="w-3 h-3 bg-pink-400 rounded-full shadow-sm" />
+                <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }} className="w-3 h-3 bg-pink-400 rounded-full shadow-sm" />
+                <motion.div animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }} className="w-3 h-3 bg-pink-400 rounded-full shadow-sm" />
+              </motion.div>
+            ) : latestWaifuMessage ? (
+              <AnimatedText 
+                key={latestWaifuMessage.id} 
+                text={latestWaifuMessage.text} 
+                onComplete={() => setIsTalking(false)}
+              />
+            ) : null}
           </AnimatePresence>
         </div>
 
         {/* Waifu Sprite */}
         <div className="flex flex-col items-center justify-end w-full">
-          <WaifuSprite emotion={emotion} isTalking={isTalking} />
+          <WaifuSprite emotion={emotion} isTalking={isTalking} isThinking={isThinking} />
         </div>
 
         {/* Text Input Box (Bottom Middle) */}

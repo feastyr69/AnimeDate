@@ -14,6 +14,7 @@ type Emotion =
 type WaifuSpriteProps = {
   emotion?: Emotion | string;
   isTalking?: boolean;
+  isThinking?: boolean;
 };
 
 // ─── Asset Config ────────────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ const layerStyle: React.CSSProperties = {
 const WaifuSprite: React.FC<WaifuSpriteProps> = ({
   emotion = 'normal',
   isTalking = false,
+  isThinking = false,
 }) => {
   const [mouthOpen, setMouthOpen] = useState(false);
 

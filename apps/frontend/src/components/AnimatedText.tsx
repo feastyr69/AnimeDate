@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface AnimatedTextProps {
   text: string;
+  onComplete?: () => void;
 }
 
-export default function AnimatedText({ text }: AnimatedTextProps) {
+export default function AnimatedText({ text, onComplete }: AnimatedTextProps) {
   // Split the text into sentences to act as "lines"
   const lines = text.split(/(?<=[.?!])\s+/).filter(Boolean);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -58,6 +59,10 @@ export default function AnimatedText({ text }: AnimatedTextProps) {
               setTimeout(() => {
                 setCurrentIndex(currentIndex + 1);
               }, 1200); // Wait 1.2s after line finishes before fading out
+            } else {
+              if (onComplete) {
+                onComplete();
+              }
             }
           }}
         >
