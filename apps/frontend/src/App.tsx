@@ -9,6 +9,8 @@ type Message = {
   text: string;
 };
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 function App() {
   const [emotion, setEmotion] = useState('normal');
   const [isTalking, setIsTalking] = useState(false);
@@ -25,7 +27,7 @@ function App() {
   const handleClearMemory = async () => {
     if (!window.confirm("Are you sure you want to clear her memory?")) return;
     try {
-      await fetch('http://localhost:8000/api/clear-memory', { method: 'POST' });
+      await fetch(`${API_URL}/api/clear-memory`, { method: 'POST' });
       setMessages([]);
       alert("Memory wiped!");
     } catch (e) {
@@ -53,7 +55,7 @@ function App() {
     setIsRizzed(false); // Reset rizz on next turn
 
     try {
-      const res = await fetch('http://localhost:8000/api/chat', {
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userText, session_id: sessionId })
