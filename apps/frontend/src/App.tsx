@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import WaifuSprite from './components/WaifuSprite';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnimatedText from './components/AnimatedText';
