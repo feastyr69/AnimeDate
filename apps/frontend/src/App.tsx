@@ -135,7 +135,13 @@ function App() {
     setIsThinking(true);
     setIsRizzed(false); // Reset rizz on next turn
 
+    if (userText.toLowerCase() === "/clearmemory") {
+      handleClearMemory();
+      return;
+    }
+
     try {
+
       const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -197,12 +203,14 @@ function App() {
 
         <audio ref={audioRef} src="/rizz.mp3" preload="auto" />
 
-        <button
+        {/* Clear Memory BUTTON HERE -----------------------------------------------> */}
+
+        {/* <button
           onClick={handleClearMemory}
           className="absolute top-4 right-4 z-50 bg-red-400 hover:bg-red-500 text-white text-xs font-bold py-2 px-4 rounded-full shadow-md transition-all"
         >
           Clear Memory
-        </button>
+        </button> */}
 
         {/* Main Area: Waifu Sprite & Input Box */}
         <div className="flex-1 flex flex-col items-center justify-end relative z-10">
