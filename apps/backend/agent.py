@@ -10,7 +10,7 @@ from langchain_core.prompts import MessagesPlaceholder
 load_dotenv()
 
 groq_api_key = os.getenv("GROQ_API_KEY")
-
+groq_api_key_2 = os.getenv("GROQ_API_KEY_2")
 
 
 class WaifuResponse(BaseModel):
@@ -23,13 +23,23 @@ class WaifuResponse(BaseModel):
         description="Set to true ONLY if the user uses an incredibly smooth, clever, or deeply moving pickup line that completely catches you off guard. You are hard to get. Normal compliments will not rizz you."
     )
 
-llm = ChatGroq(
+llm1 = ChatGroq(
     model="llama-3.1-8b-instant",
     temperature=0.7,
     api_key=groq_api_key
 )
+structured_llm1 = llm1.with_structured_output(WaifuResponse, method="json_mode")
 
-structured_llm = llm.with_structured_output(WaifuResponse, method="json_mode")
+llm2 = None
+structured_llm2 = None
+if groq_api_key_2:
+    llm2 = ChatGroq(
+        model="llama-3.1-8b-instant",
+        temperature=0.7,
+        api_key=groq_api_key_2
+    )
+    structured_llm2 = llm2.with_structured_output(WaifuResponse, method="json_mode")
+
 
 prompt = ChatPromptTemplate.from_messages([
     ("system", "You are a cute, {persona} anime waifu dating simulator companion. "
@@ -59,7 +69,11 @@ prompt = ChatPromptTemplate.from_messages([
 store = {}
 session_last_rizzed = {}
 
-chain = prompt | structured_llm
+chain1 = prompt | structured_llm1
+chain2 = (prompt | structured_llm2) if structured_llm2 else None
+
+current_chain_idx = 1
+
 
 def clear_short_term_memory():
     global store, session_last_rizzed
@@ -75,12 +89,41 @@ def get_chat_response(user_input: str, session_id: str = "default") -> dict:
         
     chat_history = store[session_id]
     
-    response = chain.invoke({
+    invoke_args = {
         "persona": persona,
         "memory_context": memory_context,
         "chat_history": chat_history,
         "user_input": user_input
-    })
+    }
+    
+    global current_chain_idx
+    chains = [chain1]
+    if chain2:
+        chains.append(chain2)
+        
+    response = None
+    
+    # Try the current chain first
+    primary_chain = chain1 if current_chain_idx == 1 else (chain2 if chain2 else chain1)
+    secondary_chain = chain2 if (current_chain_idx == 1 and chain2) else chain1
+
+    try:
+        response = primary_chain.invoke(invoke_args)
+    except Exception as e:
+        if "429" in str(e) and secondary_chain and secondary_chain != primary_chain:
+            try:
+                # Switch the active chain
+                current_chain_idx = 2 if current_chain_idx == 1 else 1
+                response = secondary_chain.invoke(invoke_args)
+            except Exception as e2:
+                if "429" in str(e2):
+                    return {"error": "rate_limit_exceeded"}
+                raise e2
+        elif "429" in str(e):
+            return {"error": "rate_limit_exceeded"}
+        else:
+            raise e
+
     
     # Manually append to history so the LLM remembers the immediate context
     store[session_id].append(HumanMessage(content=user_input))

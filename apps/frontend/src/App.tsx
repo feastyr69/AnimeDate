@@ -149,6 +149,18 @@ function App() {
       });
       const data = await res.json();
 
+      if (data.error === 'rate_limit_exceeded') {
+        window.alert("Rate Limit Exceeded Warning!\n\nThe waifu is tired of talking and needs rest.");
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          sender: 'waifu',
+          text: 'Zzz... I am too tired to talk right now...'
+        }]);
+        setEmotion('bored');
+        setIsTalking(true);
+        return;
+      }
+
       setEmotion(data.emotion);
       setIsRizzed(data.is_rizzed || false);
 
